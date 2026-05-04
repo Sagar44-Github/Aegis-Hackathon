@@ -59,42 +59,66 @@ tick_counter: int            = 0
 
 def setup_city() -> None:
     """
-    Extend the default city_graph singleton with simulation-specific nodes
-    and instantiate one agent per consumer node.
+    Build the city graph with exactly 4 nodes and 3 bidding agents:
 
-    Adds:
-        pp_main    — 80 MW power plant (supply source) - REDUCED to create scarcity
-        hosp_main  — Hospital (80 ICU patients)
-        water_main — Water treatment plant
-        fire_main  — Fire station (3 trucks, 0 incidents)
+        pp_main    — Power Plant (supply source, 100 MW)
+        hosp_main  — Hospital (bidding agent)
+        water_main — Water Treatment Plant (bidding agent)
+        fire_main  — Fire/Police Station (bidding agent)
+
+    Uses San Francisco coordinates for map display.
     """
     import random
-    
-    # Supply source - REDUCED from 100 to 80 MW to create scarcity
-    supply_capacity = 80.0 + random.uniform(-10, 5)  # Variable supply 70-85 MW
-    # Using realistic San Francisco Bay Area coordinates
-    city_graph.add_infrastructure_node("pp_main",    "POWER_PLANT",  (37.78, -122.42), supply_capacity)
-    
-    # Consumer nodes - all within San Francisco area
-    city_graph.add_infrastructure_node("hosp_main",  "HOSPITAL",     (37.77, -122.41), 10.0)
-    city_graph.add_infrastructure_node("water_main", "WATER_PLANT",  (37.76, -122.43), 10.0)
-    city_graph.add_infrastructure_node("fire_main",  "FIRE_STATION", (37.79, -122.40),  5.0)
 
-    # Power line connections
-    city_graph.add_edge("pp_main", "hosp_main",  capacity=10.0)
-    city_graph.add_edge("pp_main", "water_main", capacity=10.0)
-    city_graph.add_edge("pp_main", "fire_main",  capacity=5.0)
+    # Clear any existing state
+    city_graph.clear()
+    agents.clear()
 
-    # Agents (one per consumer node, IDs match node IDs)
-    # Initialize with varied states for dynamic behavior
-    # Agent coordinates must match node coordinates
-    agents.append(HospitalAgent("hosp_main",  (37.77, -122.41), icu_patients=random.randint(60, 120), generator_fuel=random.uniform(30, 100)))
-    agents.append(WaterAgent(   "water_main", (37.76, -122.43), pump_capacity=100.0, current_production=random.uniform(40, 90)))
-    agents.append(FireStationAgent("fire_main", (37.79, -122.40), active_trucks=random.randint(2, 5), active_incidents=random.randint(0, 2)))
+    # ── Supply source — enough to cover demand but creates scarcity ──
+    supply_capacity = 100.0 + random.uniform(-10, 10)  # 90–110 MW
+    city_graph.add_infrastructure_node(
+        "pp_main", "POWER_PLANT", (37.7850, -122.4000), supply_capacity
+    )
+
+    # ── Consumer nodes (3 agents) ──
+    city_graph.add_infrastructure_node(
+        "hosp_main", "HOSPITAL", (37.7750, -122.4180), 30.0
+    )
+    city_graph.add_infrastructure_node(
+        "water_main", "WATER_PLANT", (37.7680, -122.4300), 25.0
+    )
+    city_graph.add_infrastructure_node(
+        "fire_main", "FIRE_STATION", (37.7920, -122.4050), 15.0
+    )
+
+    # ── Power line connections ──
+    city_graph.add_edge("pp_main", "hosp_main",  capacity=40.0)
+    city_graph.add_edge("pp_main", "water_main", capacity=30.0)
+    city_graph.add_edge("pp_main", "fire_main",  capacity=20.0)
+
+    # ── Agents (one per consumer node, IDs match node IDs) ──
+    agents.append(HospitalAgent(
+        "hosp_main",
+        (37.7750, -122.4180),
+        icu_patients=random.randint(40, 80),
+        generator_fuel=random.uniform(50, 100),
+    ))
+    agents.append(WaterAgent(
+        "water_main",
+        (37.7680, -122.4300),
+        pump_capacity=100.0,
+        current_production=random.uniform(50, 85),
+    ))
+    agents.append(FireStationAgent(
+        "fire_main",
+        (37.7920, -122.4050),
+        active_trucks=random.randint(2, 4),
+        active_incidents=random.randint(0, 1),
+    ))
 
     logger.info(
-        "City setup complete — supply: %.0f MW | agents: %d",
-        city_graph.get_total_supply(), len(agents),
+        "City setup complete — supply: %.0f MW | agents: %d | nodes: %d",
+        city_graph.get_total_supply(), len(agents), len(city_graph.nodes),
     )
 
 
@@ -129,44 +153,44 @@ async def simulation_loop() -> None:
             total_supply = city_graph.get_total_supply()
             graph_state  = city_graph.nodes
             
-            # 2 — Dynamic Events: randomly change agent states every 5 ticks
-            if tick_counter % 5 == 0:
+            # 2 — Dynamic Events: randomly change agent states every 3 ticks
+            if tick_counter % 3 == 0:
                 for agent in agents:
                     if hasattr(agent, 'icu_patients'):  # Hospital
                         # Randomly change patient count
-                        if random.random() > 0.7:
-                            change = random.randint(-10, 15)
-                            agent.icu_patients = max(20, min(150, agent.icu_patients + change))
+                        if random.random() > 0.5:
+                            change = random.randint(-5, 10)
+                            agent.icu_patients = max(20, min(120, agent.icu_patients + change))
                         # Randomly consume fuel
-                        agent.consume_fuel(hours=0.5)
+                        agent.consume_fuel(hours=0.3)
                         # Randomly refuel if low
-                        if agent.generator_fuel < 30 and random.random() > 0.5:
-                            agent.refuel(random.uniform(20, 40))
+                        if agent.generator_fuel < 30 and random.random() > 0.4:
+                            agent.refuel(random.uniform(15, 30))
                     elif hasattr(agent, 'current_production'):  # Water
                         # Randomly change production
-                        if random.random() > 0.6:
-                            change = random.uniform(-15, 10)
-                            agent.current_production = max(20, min(100, agent.current_production + change))
+                        if random.random() > 0.4:
+                            change = random.uniform(-10, 8)
+                            agent.current_production = max(30, min(100, agent.current_production + change))
                     elif hasattr(agent, 'active_incidents'):  # Fire
                         # Randomly add/resolve incidents
-                        if random.random() > 0.7:
+                        if random.random() > 0.6:
                             if random.random() > 0.5:
-                                agent.dispatch_truck(random.randint(1, 2))
+                                agent.dispatch_truck(1)
                             else:
-                                agent.resolve_incident(random.randint(1, 2))
+                                agent.resolve_incident(1)
                 
                 # Randomly vary supply slightly
-                if random.random() > 0.8:
-                    supply_change = random.uniform(-5, 3)
-                    current_supply = city_graph.nodes.get("pp_main", {}).get("capacity", 80)
-                    new_supply = max(50, min(100, current_supply + supply_change))
+                if random.random() > 0.6:
+                    supply_change = random.uniform(-8, 5)
+                    current_supply = city_graph.nodes.get("pp_main", {}).get("capacity", 100)
+                    new_supply = max(60, min(120, current_supply + supply_change))
                     city_graph.nodes["pp_main"]["capacity"] = new_supply
                     city_graph.nodes["pp_main"]["max_output"] = new_supply
 
-            # 2 — Raw bids (synchronous, fast)
+            # 3 — Raw bids (synchronous, fast)
             raw_bids = [agent.generate_bid(graph_state) for agent in agents]
 
-            # 3 — LLM justifications (concurrent, 1.5s timeout each, fallback safe)
+            # 4 — LLM justifications (concurrent, 1.5s timeout each, fallback safe)
             async def _justify(bid):
                 bid.justification = await llm_router.generate_justification(
                     agent_type=bid.agent_type.value,
@@ -177,7 +201,7 @@ async def simulation_loop() -> None:
 
             bids = await asyncio.gather(*[_justify(b) for b in raw_bids])
 
-            # 4 — Allocate
+            # 5 — Allocate
             allocations_dict = arbiter.allocate(list(bids), total_supply)
 
             # Notify each agent of its allocation
@@ -187,17 +211,18 @@ async def simulation_loop() -> None:
                     allocations_dict.get(agent.agent_id, 0.0)
                 )
 
-            # 5 — Update graph loads
+            # 6 — Update graph loads
             city_graph.update_loads(allocations_dict)
 
-            # 6 — Metrics
+            # 7 — Metrics
             alloc_values  = list(allocations_dict.values())
             total_demand  = sum(b.demand_mw for b in bids)
             fairness      = arbiter.jains_fairness(alloc_values)
-            # Utilization: fraction (0-1) of supply that is actually allocated
-            utilisation   = (sum(alloc_values) / total_supply) if total_supply > 0 else 0.0
+            total_allocated = sum(alloc_values)
+            # Utilization: percentage of supply that is actually allocated
+            utilisation   = (total_allocated / total_supply * 100) if total_supply > 0 else 0.0
 
-            # 7 — Build SimulationState schema
+            # 8 — Build SimulationState schema
             allocations_schema = [
                 Allocation(
                     agent_id=agent_id,
@@ -217,6 +242,7 @@ async def simulation_loop() -> None:
                     "demand_mw": b.demand_mw,
                     "urgency_score": b.urgency_score,
                     "justification": b.justification,
+                    "allocated_mw": allocations_dict.get(b.agent_id, 0.0),
                     "timestamp": time.time(),
                     "tick": tick_counter,
                 }
@@ -227,6 +253,23 @@ async def simulation_loop() -> None:
             _accumulated_agent_logs.extend(current_tick_logs)
             if len(_accumulated_agent_logs) > 500:
                 _accumulated_agent_logs = _accumulated_agent_logs[-500:]
+
+            # Build dynamic agent states for frontend
+            agent_states = {}
+            for agent in agents:
+                status = agent.get_status()
+                # Add agent-specific dynamic data
+                if hasattr(agent, 'icu_patients'):
+                    status["icu_patients"] = agent.icu_patients
+                    status["generator_fuel"] = round(agent.generator_fuel, 1)
+                elif hasattr(agent, 'current_production'):
+                    status["pump_capacity"] = agent.pump_capacity
+                    status["current_production"] = round(agent.current_production, 1)
+                    status["pump_deficit"] = round(agent.pump_capacity - agent.current_production, 1)
+                elif hasattr(agent, 'active_incidents'):
+                    status["active_trucks"] = agent.active_trucks
+                    status["active_incidents"] = agent.active_incidents
+                agent_states[agent.agent_id] = status
 
             state = SimulationState(
                 tick=tick_counter,
@@ -240,7 +283,14 @@ async def simulation_loop() -> None:
                     "utilization":    round(utilisation, 3),
                     "total_supply_mw": total_supply,
                     "total_demand_mw": round(total_demand, 2),
-                    "active_agents":  len(agents),
+                    "total_allocated_mw": round(total_allocated, 2),
+                    "supply_deficit_mw": round(max(0, total_demand - total_supply), 2),
+                    "overall_satisfaction": round(
+                        sum(a.satisfaction for a in allocations_schema) / len(allocations_schema), 4
+                    ) if allocations_schema else 1.0,
+                    "agents_online": sum(1 for a in agents if a.state.value == "ONLINE"),
+                    "agents_degraded": sum(1 for a in agents if a.state.value == "DEGRADED"),
+                    "agents_offline": sum(1 for a in agents if a.state.value == "OFFLINE"),
                 },
                 disasters=[],
             )
@@ -248,6 +298,7 @@ async def simulation_loop() -> None:
             # Add nodes data to state for frontend
             state_dict = state.model_dump(mode="json")
             state_dict["nodes"] = city_graph.nodes
+            state_dict["agent_states"] = agent_states
             
             # Add allocation decisions with reasons
             state_dict["allocation_decisions"] = arbiter._allocation_log[-len(agents):] if len(arbiter._allocation_log) >= len(agents) else arbiter._allocation_log
@@ -256,8 +307,8 @@ async def simulation_loop() -> None:
             await manager.broadcast(state_dict)
 
             logger.debug(
-                "Tick %d | supply=%.0f MW | demand=%.1f MW | fairness=%.2f | clients=%d",
-                tick_counter, total_supply, total_demand,
+                "Tick %d | supply=%.0f MW | demand=%.1f MW | allocated=%.1f MW | fairness=%.2f | clients=%d",
+                tick_counter, total_supply, total_demand, total_allocated,
                 fairness, manager.connection_count,
             )
 
@@ -319,6 +370,13 @@ async def health() -> Dict[str, Any]:
         "supply_mw":   city_graph.get_total_supply(),
         "ws_clients":  manager.connection_count,
     }
+
+
+@app.post("/api/set-location", tags=["System"])
+async def set_location(data: Dict[str, Any]) -> Dict[str, str]:
+    """Accept user location from the frontend (optional, for future use)."""
+    logger.info("User location received: %s", data)
+    return {"status": "ok"}
 
 
 @app.websocket("/ws")

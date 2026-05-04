@@ -15,16 +15,16 @@ import AgentStrategies    from './components/AgentStrategies';
 import NetworkTopology    from './components/NetworkTopology';
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
-const WS_URL  = 'ws://localhost:8001/ws';
-const API_URL = 'http://localhost:8001';
+const WS_URL  = 'ws://127.0.0.1:8000/ws';
+const API_URL = 'http://127.0.0.1:8000';
 
 // ─── Static node positions (fallback until backend sends graph topology) ──────
 // Types match backend AgentType enum (uppercase)
 const STATIC_NODES = {
-  pp_main:    { id: 'pp_main',    type: 'POWER_PLANT',  location: [51.50, -0.12], capacity: 100, status: 'ONLINE' },
-  hosp_main:  { id: 'hosp_main',  type: 'HOSPITAL',     location: [51.48,  0.20], capacity:  10, status: 'ONLINE' },
-  water_main: { id: 'water_main', type: 'WATER_PLANT',  location: [51.20, -0.30], capacity:  10, status: 'ONLINE' },
-  fire_main:  { id: 'fire_main',  type: 'FIRE_STATION', location: [51.70,  0.60], capacity:   5, status: 'ONLINE' },
+  pp_main:    { id: 'pp_main',    type: 'POWER_PLANT',  location: [37.7850, -122.4000], capacity: 100, status: 'ONLINE' },
+  hosp_main:  { id: 'hosp_main',  type: 'HOSPITAL',     location: [37.7750, -122.4180], capacity: 30,  status: 'ONLINE' },
+  water_main: { id: 'water_main', type: 'WATER_PLANT',  location: [37.7680, -122.4300], capacity: 25,  status: 'ONLINE' },
+  fire_main:  { id: 'fire_main',  type: 'FIRE_STATION', location: [37.7920, -122.4050], capacity: 15,  status: 'ONLINE' },
 };
 
 // ─── Merge backend nodes with static fallback (fills missing locations) ───────
@@ -189,7 +189,7 @@ export default function App() {
           <OverallStatus state={state} />
         </div>
 
-        {/* Left column: Map */}
+        {/* Left column: Map + Allocation Decisions + Agent Log */}
         <section className="xl:col-span-2 space-y-4">
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
             <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
@@ -204,18 +204,21 @@ export default function App() {
               />
             </div>
           </div>
-          
-          <NetworkTopology nodes={nodes} allocations={allocationsMap} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <NetworkTopology nodes={nodes} allocations={allocationsMap} />
+            <SystemHealth state={state} />
+          </div>
+
+          <AgentLog logs={logs} />
+          <AllocationDecisions decisions={state?.allocation_decisions} />
         </section>
 
-        {/* Right column: All panels */}
+        {/* Right column: Panels + Controls */}
         <aside className="space-y-4">
           <ResourceAllocation allocations={state?.allocations} />
           <PriorityQueue allocations={state?.allocations} />
           <AgentStrategies allocations={state?.allocations} />
-          <SystemHealth state={state} />
-          <AllocationDecisions decisions={state?.allocation_decisions} />
-          <AgentLog logs={logs} />
           <DisasterControls
             connected={isConnected}
             onTriggerDisaster={handleDisaster}

@@ -1,5 +1,4 @@
 // frontend/src/components/NetworkTopology.jsx
-import { Circle, Line } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function NetworkTopology({ nodes = {}, allocations = {} }) {
@@ -42,7 +41,7 @@ export default function NetworkTopology({ nodes = {}, allocations = {} }) {
             const nextNode = positionedNodes[(idx + 1) % positionedNodes.length];
             const isReduced = node.allocated < node.demand * 0.7;
             return (
-              <Line
+              <line
                 key={`line-${idx}`}
                 x1={node.x}
                 y1={node.y}
@@ -62,7 +61,7 @@ export default function NetworkTopology({ nodes = {}, allocations = {} }) {
             
             return (
               <g key={node.id}>
-                <Circle
+                <circle
                   cx={node.x}
                   cy={node.y}
                   r={12}

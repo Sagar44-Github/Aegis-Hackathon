@@ -1,5 +1,6 @@
 // frontend/src/components/AgentStrategies.jsx
 import { Target, Hand, Minus, Power, Pause } from 'lucide-react';
+import { clsx } from 'clsx';
 
 export default function AgentStrategies({ allocations = [] }) {
   const allocArray = Array.isArray(allocations) ? allocations : Object.values(allocations);

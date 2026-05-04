@@ -16,6 +16,18 @@ export default function AnimatedCityMap({ nodes = {}, allocations = {}, previous
     );
   }
 
+  // Calculate map center from node positions
+  const validLocations = nodeEntries
+    .map(([, n]) => n.location)
+    .filter((loc) => Array.isArray(loc) && loc.length >= 2 && loc.every((v) => v != null && !isNaN(v)));
+
+  const mapCenter = validLocations.length > 0
+    ? [
+        validLocations.reduce((s, l) => s + l[0], 0) / validLocations.length,
+        validLocations.reduce((s, l) => s + l[1], 0) / validLocations.length,
+      ]
+    : [37.78, -122.42]; // San Francisco fallback
+
   // Calculate allocation change for animation
   const getAllocationChange = (nodeId) => {
     const current = allocations[nodeId]?.allocated_mw || 0;
@@ -26,8 +38,8 @@ export default function AnimatedCityMap({ nodes = {}, allocations = {}, previous
   return (
     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 shadow-2xl relative">
       <MapContainer
-        center={[50, 50]}
-        zoom={7}
+        center={mapCenter}
+        zoom={13}
         scrollWheelZoom
         className="w-full h-full"
         style={{ background: '#0f172a' }}

@@ -259,33 +259,7 @@ class CityGraph:
 
 
 # ── Default city singleton ────────────────────────────────────────────────────
-# Pre-initialised with a representative city layout.
-# Imported by app/api/disasters.py and app/simulation/event_loop.py.
+# Starts EMPTY — setup_city() in main.py adds exactly 4 nodes.
+# This avoids the duplicate-node problem.
 
-def _build_default_city() -> CityGraph:
-    g = CityGraph()
-
-    # Supply nodes
-    g.add_infrastructure_node("pp1", POWER_PLANT,  (40.700, -74.020), capacity=60.0)
-    g.add_infrastructure_node("pp2", POWER_PLANT,  (40.750, -73.980), capacity=40.0)
-
-    # Demand / agent nodes
-    g.add_infrastructure_node("hospital-1",  HOSPITAL,     (40.712, -74.006), capacity=10.0)
-    g.add_infrastructure_node("hospital-2",  HOSPITAL,     (40.740, -73.990), capacity=10.0)
-    g.add_infrastructure_node("water-1",     WATER_PLANT,  (40.705, -74.015), capacity=8.0)
-    g.add_infrastructure_node("fire-1",      FIRE_STATION, (40.720, -74.000), capacity=5.0)
-    g.add_infrastructure_node("fire-2",      FIRE_STATION, (40.745, -73.985), capacity=5.0)
-    g.add_infrastructure_node("telecom-1",   TELECOM,      (40.715, -74.010), capacity=4.0)
-
-    # Power line connections
-    g.add_edge("pp1", "hospital-1", capacity=10.0)
-    g.add_edge("pp1", "water-1",    capacity=8.0)
-    g.add_edge("pp1", "fire-1",     capacity=5.0)
-    g.add_edge("pp1", "telecom-1",  capacity=4.0)
-    g.add_edge("pp2", "hospital-2", capacity=10.0)
-    g.add_edge("pp2", "fire-2",     capacity=5.0)
-
-    return g
-
-
-city_graph = _build_default_city()
+city_graph = CityGraph()

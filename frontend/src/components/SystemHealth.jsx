@@ -1,55 +1,75 @@
 // frontend/src/components/SystemHealth.jsx
-import { Activity, Heart, Shield, Zap, Users, AlertTriangle } from 'lucide-react';
+import { Activity, Heart, Shield, Zap, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function SystemHealth({ state = {} }) {
   const metrics = state?.metrics || {};
-  const fairness = metrics.fairness_index || 1;
-  const utilization = metrics.utilisation || 0;
   const allocations = state?.allocations || [];
+  const agentStates = state?.agent_states || {};
   
-  // Calculate derived metrics
-  const allocationEfficiency = utilization * 100;
+  // All dynamic — derived from backend data
+  const fairness = metrics.fairness_index ?? 1;
+  const utilization = metrics.utilization ?? 0;
+  const totalSupply = metrics.total_supply_mw ?? 0;
+  const totalDemand = metrics.total_demand_mw ?? 0;
+  const totalAllocated = metrics.total_allocated_mw ?? 0;
+  const supplyDeficit = metrics.supply_deficit_mw ?? 0;
+  const overallSatisfaction = metrics.overall_satisfaction ?? 1;
+  
+  // Dynamic agent status counts from backend
+  const agentsOnline = metrics.agents_online ?? 0;
+  const agentsDegraded = metrics.agents_degraded ?? 0;
+  const agentsOffline = metrics.agents_offline ?? 0;
+  const totalAgents = agentsOnline + agentsDegraded + agentsOffline;
+  
+  // Dynamic shortfall count from actual allocations
   const failureEvents = allocations.filter(a => (a.shortfall_mw || 0) > 0).length;
-  const agentsStable = allocations.filter(a => (a.satisfaction || 1) > 0.7).length;
-  const convergenceRate = fairness > 0.8 ? 96 : fairness > 0.6 ? 78 : 52;
+  
+  // Dynamic allocation efficiency
+  const allocEfficiency = totalSupply > 0 ? (totalAllocated / totalSupply) * 100 : 0;
   
   const metricsData = [
     {
       label: 'Allocation Efficiency',
-      value: `${allocationEfficiency.toFixed(0)}%`,
+      value: `${allocEfficiency.toFixed(0)}%`,
+      sub: `${totalAllocated.toFixed(0)}/${totalSupply.toFixed(0)} MW`,
       icon: Activity,
-      color: allocationEfficiency > 80 ? 'text-emerald-400' : allocationEfficiency > 60 ? 'text-yellow-400' : 'text-red-400',
+      color: allocEfficiency > 80 ? 'text-emerald-400' : allocEfficiency > 50 ? 'text-yellow-400' : 'text-red-400',
     },
     {
-      label: 'Failure Events',
-      value: failureEvents,
+      label: 'Supply Deficit',
+      value: supplyDeficit > 0 ? `${supplyDeficit.toFixed(1)} MW` : 'None',
+      sub: supplyDeficit > 0 ? 'Demand exceeds supply' : 'Supply sufficient',
       icon: AlertTriangle,
-      color: failureEvents === 0 ? 'text-emerald-400' : failureEvents < 3 ? 'text-yellow-400' : 'text-red-400',
+      color: supplyDeficit <= 0 ? 'text-emerald-400' : supplyDeficit < 10 ? 'text-yellow-400' : 'text-red-400',
     },
     {
-      label: 'Agents Stable',
-      value: `${agentsStable}/${allocations.length}`,
+      label: 'Agents Status',
+      value: `${agentsOnline}/${totalAgents}`,
+      sub: agentsDegraded > 0 ? `${agentsDegraded} degraded` : agentsOffline > 0 ? `${agentsOffline} offline` : 'All healthy',
       icon: Users,
-      color: agentsStable === allocations.length ? 'text-emerald-400' : 'text-yellow-400',
+      color: agentsOnline === totalAgents ? 'text-emerald-400' : agentsOffline > 0 ? 'text-red-400' : 'text-yellow-400',
     },
     {
-      label: 'Convergence Rate',
-      value: `${convergenceRate}%`,
-      icon: Zap,
-      color: convergenceRate > 80 ? 'text-emerald-400' : convergenceRate > 60 ? 'text-yellow-400' : 'text-red-400',
+      label: 'Satisfaction',
+      value: `${(overallSatisfaction * 100).toFixed(0)}%`,
+      sub: failureEvents > 0 ? `${failureEvents} shortfalls` : 'All met',
+      icon: TrendingUp,
+      color: overallSatisfaction >= 0.9 ? 'text-emerald-400' : overallSatisfaction >= 0.6 ? 'text-yellow-400' : 'text-red-400',
     },
     {
       label: 'Fairness Index',
-      value: fairness.toFixed(2),
+      value: fairness.toFixed(3),
+      sub: fairness > 0.9 ? 'Equitable' : fairness > 0.7 ? 'Moderate' : 'Unfair',
       icon: Shield,
-      color: fairness > 0.8 ? 'text-emerald-400' : fairness > 0.6 ? 'text-yellow-400' : 'text-red-400',
+      color: fairness > 0.9 ? 'text-emerald-400' : fairness > 0.7 ? 'text-yellow-400' : 'text-red-400',
     },
     {
-      label: 'Lives at Risk',
-      value: 'Reducing',
-      icon: Heart,
-      color: 'text-emerald-400',
+      label: 'Grid Utilization',
+      value: `${utilization.toFixed(0)}%`,
+      sub: utilization > 90 ? 'Near capacity' : utilization > 60 ? 'Moderate load' : 'Light load',
+      icon: Zap,
+      color: utilization > 90 ? 'text-red-400' : utilization > 60 ? 'text-yellow-400' : 'text-emerald-400',
     },
   ];
 
@@ -71,6 +91,9 @@ export default function SystemHealth({ state = {} }) {
               </div>
               <div className={clsx('text-lg font-bold', metric.color)}>
                 {metric.value}
+              </div>
+              <div className="text-[10px] text-gray-600 mt-0.5">
+                {metric.sub}
               </div>
             </div>
           );
