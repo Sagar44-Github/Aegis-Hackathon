@@ -46,20 +46,24 @@ class FireStationAgent(CrisisAgent):
     def calculate_demand(self, city_graph: Dict[str, Any]) -> float:
         """
         Base station load + truck operational load.
-            base  = 0.5 MW  (comms, lights, equipment)
-            trucks = 1.0 MW per active truck
+            base  = 10.0 MW  (comms, lights, equipment, charging)
+            trucks = 5.0 MW per active truck (high power for pumps, comms)
         """
-        return round(0.5 + (self.active_trucks * 1.0), 3)
+        import random
+        base = 10.0 + random.uniform(-2, 3)
+        return round(base + (self.active_trucks * 5.0), 3)
 
     def calculate_urgency(self, city_graph: Dict[str, Any]) -> float:
         """
-        Urgency driven by active incident count.
-            0 incidents → 3.0  (ONLINE — standby)
-            1 incident  → 5.0  (DEGRADED — responding)
-            3 incidents → 9.0  (DEGRADED — overwhelmed)
+        Urgency driven by active incident count with randomness.
+            0 incidents → 4.0  (ONLINE — standby)
+            1 incident  → 6.5  (DEGRADED — responding)
+            3 incidents → 9.5  (DEGRADED — overwhelmed)
         """
-        urgency = 3.0 + (self.active_incidents * 2.0)
-        urgency = min(9.8, urgency)    # cap below hospital life-support priority
+        import random
+        random_factor = random.uniform(-0.5, 0.5)
+        urgency = 4.0 + (self.active_incidents * 2.5) + random_factor
+        urgency = min(9.8, urgency)
 
         if urgency >= 7.0:
             self.state = AgentStatus.DEGRADED
@@ -72,8 +76,11 @@ class FireStationAgent(CrisisAgent):
 
     def dispatch_truck(self, count: int = 1) -> None:
         """Deploy additional trucks to an incident."""
+        import random
         self.active_trucks    = max(0, self.active_trucks + count)
-        self.active_incidents = max(0, self.active_incidents + count)
+        # Randomly add incidents to simulate dynamic emergency situations
+        if random.random() > 0.7:
+            self.active_incidents = max(0, self.active_incidents + random.randint(1, 2))
 
     def resolve_incident(self, count: int = 1) -> None:
         """Mark incidents as resolved, recall trucks."""

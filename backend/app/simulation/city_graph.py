@@ -251,6 +251,12 @@ class CityGraph:
             node["current_load"] = 0.0
         logger.info("CityGraph: all nodes restored to ONLINE")
 
+    def clear(self) -> None:
+        """Clear all nodes and edges from the graph."""
+        self.graph.clear()
+        self.nodes.clear()
+        logger.info("CityGraph: cleared all nodes and edges")
+
 
 # ── Default city singleton ────────────────────────────────────────────────────
 # Pre-initialised with a representative city layout.

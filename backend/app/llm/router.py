@@ -35,7 +35,10 @@ _CLAUDE_MODEL      = "claude-3-5-haiku-20241022"
 _SYSTEM_PROMPT = (
     "You are an autonomous AI agent managing critical city infrastructure during a disaster. "
     "Your role is to justify why your utility needs its requested power allocation. "
-    "Be concise, factual, and urgent. One sentence only."
+    "Be specific, urgent, and vary your reasoning based on the context. "
+    "Mention specific equipment, patient counts, or operational details. "
+    "Different scenarios require different justifications - be creative but realistic. "
+    "One to two sentences maximum."
 )
 
 # ── Per-agent rule-based fallback templates ───────────────────────────────────

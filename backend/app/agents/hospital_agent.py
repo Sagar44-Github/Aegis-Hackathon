@@ -45,28 +45,33 @@ class HospitalAgent(CrisisAgent):
     def calculate_demand(self, city_graph: Dict[str, Any]) -> float:
         """
         Base hospital load + ICU patient load.
-            base  = 2.0 MW  (lights, HVAC, general equipment)
-            ICU   = 0.05 MW per patient (50 kW each)
+            base  = 15.0 MW  (lights, HVAC, general equipment, MRI, etc)
+            ICU   = 0.5 MW per patient (500kW each - life support, ventilators)
         """
-        base_load = 2.0
-        icu_load  = self.icu_patients * 0.05
+        import random
+        base_load = 15.0 + random.uniform(-2, 3)  # Variable base load
+        icu_load  = self.icu_patients * 0.5
         return base_load + icu_load
 
     def calculate_urgency(self, city_graph: Dict[str, Any]) -> float:
         """
         Urgency driven by generator fuel level and patient count.
         Fuel < 20% → life-support risk → urgency 9.5 (CRITICAL).
+        Added randomness for dynamic behavior.
         """
+        import random
+        random_factor = random.uniform(-0.5, 0.5)
+        
         if self.generator_fuel < 20:
-            self.state = AgentStatus.OFFLINE          # near-critical treated as offline
-            return 9.5
+            self.state = AgentStatus.OFFLINE
+            return min(10.0, 9.5 + random_factor)
         elif self.generator_fuel < 50:
             self.state = AgentStatus.DEGRADED
-            return 7.5
+            return min(9.0, 7.5 + random_factor)
         else:
             self.state = AgentStatus.ONLINE
-            patient_factor = self.icu_patients / 100  # 0.5 for 50 patients, 1.0 for 100
-            return min(9.0, 5.0 + patient_factor)
+            patient_factor = (self.icu_patients / 100) * 2  # Higher impact from patients
+            return min(9.0, 6.0 + patient_factor + random_factor)
 
     # ── Hospital-specific methods ─────────────────────────────────────────────
 

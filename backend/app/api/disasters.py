@@ -19,6 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+import random
+import math
 
 from app.simulation.disaster_generator import DisasterGenerator
 
@@ -69,6 +71,12 @@ class DisasterRequest(BaseModel):
     earthquake:   Optional[EarthquakeParams]  = None
     cyber_attack: Optional[CyberAttackParams] = None
     flood:        Optional[FloodParams]        = None
+
+
+class LocationRequest(BaseModel):
+    """User location for generating nearby agents."""
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
 
 
 # ── Dependency: city_graph singleton ─────────────────────────────────────────
@@ -245,3 +253,67 @@ async def disaster_status() -> Dict[str, Any]:
             "flood":        FloodParams.model_json_schema(),
         },
     }
+
+
+@router.post("/set-location")
+async def set_user_location(location: LocationRequest) -> Dict[str, Any]:
+    """
+    Receive user location and regenerate agents around that location.
+    Generates random infrastructure nodes within 10km of user's position.
+    """
+    try:
+        from app.simulation.city_graph import city_graph as _cg
+        from app.main import agents, arbiter
+        from app.agents.hospital_agent import HospitalAgent
+        from app.agents.water_agent import WaterAgent
+        from app.agents.fire_agent import FireStationAgent
+        
+        # Clear existing nodes and agents
+        _cg.clear()
+        agents.clear()
+        
+        # Generate power plant at user location (supply source)
+        _cg.add_infrastructure_node("pp_main", "POWER_PLANT", (location.latitude, location.longitude), 100.0)
+        
+        # Generate random agents within ~10km radius
+        num_agents = random.randint(5, 10)
+        agent_types = ["HOSPITAL", "WATER_PLANT", "FIRE_STATION", "TELECOM"]
+        
+        for i in range(num_agents):
+            # Random offset within ~0.1 degrees (~10km)
+            lat_offset = random.uniform(-0.1, 0.1)
+            lng_offset = random.uniform(-0.1, 0.1)
+            agent_lat = location.latitude + lat_offset
+            agent_lng = location.longitude + lng_offset
+            
+            agent_type = random.choice(agent_types)
+            node_id = f"{agent_type.lower()}_{i}"
+            capacity = random.uniform(5, 20)
+            
+            _cg.add_infrastructure_node(node_id, agent_type, (agent_lat, agent_lng), capacity)
+            
+            # Connect to power plant
+            _cg.add_edge("pp_main", node_id, capacity=random.uniform(5, 15))
+            
+            # Create agent
+            if agent_type == "HOSPITAL":
+                agents.append(HospitalAgent(node_id, (agent_lat, agent_lng), icu_patients=random.randint(20, 100)))
+            elif agent_type == "WATER_PLANT":
+                agents.append(WaterAgent(node_id, (agent_lat, agent_lng)))
+            elif agent_type == "FIRE_STATION":
+                agents.append(FireStationAgent(node_id, (agent_lat, agent_lng)))
+        
+        logger.info(f"Regenerated {num_agents} agents around user location ({location.latitude}, {location.longitude})")
+        
+        return {
+            "status": "success",
+            "agents_generated": num_agents,
+            "user_location": {"lat": location.latitude, "lng": location.longitude},
+            "nodes": list(_cg.nodes.keys())
+        }
+    except Exception as exc:
+        logger.exception("Failed to set location: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to set location: {exc}"
+        )

@@ -98,12 +98,28 @@ class CentralArbiter:
         self._round_history.append(round_record)
 
         for bid in sorted_bids:
+            allocated = allocations[bid.agent_id]
+            is_fully_satisfied = allocated >= bid.demand_mw
+            decision = "ACCEPTED" if is_fully_satisfied else "PARTIALLY_ACCEPTED" if allocated > 0 else "DENIED"
+            
+            # Generate reasoning for the decision
+            if is_fully_satisfied:
+                reason = f"Fully satisfied - high urgency ({bid.urgency_score}/10) and sufficient supply available"
+            elif allocated > 0:
+                reason = f"Partially satisfied - allocated {allocated:.1f} MW of {bid.demand_mw:.1f} MW demand due to supply constraints. Urgency: {bid.urgency_score}/10"
+            else:
+                reason = f"Denied - insufficient supply. Demand: {bid.demand_mw:.1f} MW, urgency: {bid.urgency_score}/10, other agents had higher priority"
+            
             self._allocation_log.append({
                 "tick":      len(self._round_history),
                 "agent_id":  bid.agent_id,
+                "agent_type": bid.agent_type.value,
                 "urgency":   bid.urgency_score,
                 "demand":    bid.demand_mw,
-                "allocated": allocations[bid.agent_id],
+                "allocated": allocated,
+                "decision":  decision,
+                "reason":    reason,
+                "justification": bid.justification,
             })
 
         logger.info(

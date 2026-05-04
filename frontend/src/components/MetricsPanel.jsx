@@ -112,18 +112,19 @@ export default function MetricsPanel({ metrics = {}, allocations = {} }) {
 
   // Track fairness over last MAX_HISTORY ticks
   useEffect(() => {
-    if (metrics.fairness == null) return;
+    const fairnessValue = metrics.fairness_index ?? metrics.fairness;
+    if (fairnessValue == null) return;
     setFairnessHistory((prev) => {
-      const entry = { tick: metrics.tick ?? Date.now(), value: metrics.fairness };
+      const entry = { tick: metrics.tick ?? Date.now(), value: fairnessValue };
       const next = [...prev, entry];
       return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
     });
-  }, [metrics.fairness, metrics.tick]);
+  }, [metrics.fairness_index, metrics.fairness, metrics.tick]);
 
   // ── Derived values ──────────────────────────────────────────────────────
   const { supply, demand }  = resolveSupplyDemand(metrics);
   const util                = resolveUtil(metrics, supply, demand);
-  const fairness            = metrics.fairness ?? null;
+  const fairness            = metrics.fairness_index ?? metrics.fairness ?? null;
   const agents              = metrics.active_agents ?? agentCount(allocations);
 
   const supplyAccent  = supply == null || demand == null ? 'text-white'

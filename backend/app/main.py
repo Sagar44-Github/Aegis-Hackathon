@@ -63,13 +63,17 @@ def setup_city() -> None:
     and instantiate one agent per consumer node.
 
     Adds:
-        pp_main    — 100 MW power plant (supply source)
+        pp_main    — 80 MW power plant (supply source) - REDUCED to create scarcity
         hosp_main  — Hospital (80 ICU patients)
         water_main — Water treatment plant
         fire_main  — Fire station (3 trucks, 0 incidents)
     """
-    # Supply source
-    city_graph.add_infrastructure_node("pp_main",    "POWER_PLANT",  (50, 50), 100.0)
+    import random
+    
+    # Supply source - REDUCED from 100 to 80 MW to create scarcity
+    supply_capacity = 80.0 + random.uniform(-10, 5)  # Variable supply 70-85 MW
+    city_graph.add_infrastructure_node("pp_main",    "POWER_PLANT",  (50, 50), supply_capacity)
+    
     # Consumer nodes
     city_graph.add_infrastructure_node("hosp_main",  "HOSPITAL",     (10, 10), 10.0)
     city_graph.add_infrastructure_node("water_main", "WATER_PLANT",  (90, 10), 10.0)
@@ -81,9 +85,10 @@ def setup_city() -> None:
     city_graph.add_edge("pp_main", "fire_main",  capacity=5.0)
 
     # Agents (one per consumer node, IDs match node IDs)
-    agents.append(HospitalAgent("hosp_main",  (10, 10), icu_patients=80))
-    agents.append(WaterAgent(   "water_main", (90, 10)))
-    agents.append(FireStationAgent("fire_main", (10, 90)))
+    # Initialize with varied states for dynamic behavior
+    agents.append(HospitalAgent("hosp_main",  (10, 10), icu_patients=random.randint(60, 120), generator_fuel=random.uniform(30, 100)))
+    agents.append(WaterAgent(   "water_main", (90, 10), pump_capacity=100.0, current_production=random.uniform(40, 90)))
+    agents.append(FireStationAgent("fire_main", (10, 90), active_trucks=random.randint(2, 5), active_incidents=random.randint(0, 2)))
 
     logger.info(
         "City setup complete — supply: %.0f MW | agents: %d",
@@ -99,14 +104,16 @@ async def simulation_loop() -> None:
 
     Each tick:
         1. Sense   — read supply + node states from city_graph
-        2. Bid     — each agent generates a raw bid
-        3. Justify — LLM justifications fetched concurrently (asyncio.gather)
-        4. Allocate— arbiter distributes supply by urgency
-        5. Update  — city_graph loads updated
-        6. Metrics — fairness index + utilisation calculated
-        7. Broadcast— SimulationState pushed to all WebSocket clients
+        2. Dynamic Events — randomly change agent states to create variety
+        3. Bid     — each agent generates a raw bid
+        4. Justify — LLM justifications fetched concurrently (asyncio.gather)
+        5. Allocate— arbiter distributes supply by urgency
+        6. Update  — city_graph loads updated
+        7. Metrics — fairness index + utilisation calculated
+        8. Broadcast— SimulationState pushed to all WebSocket clients
     """
     global tick_counter
+    import random
 
     while True:
         await asyncio.sleep(2.0)
@@ -116,6 +123,40 @@ async def simulation_loop() -> None:
             # 1 — Sense
             total_supply = city_graph.get_total_supply()
             graph_state  = city_graph.nodes
+            
+            # 2 — Dynamic Events: randomly change agent states every 5 ticks
+            if tick_counter % 5 == 0:
+                for agent in agents:
+                    if hasattr(agent, 'icu_patients'):  # Hospital
+                        # Randomly change patient count
+                        if random.random() > 0.7:
+                            change = random.randint(-10, 15)
+                            agent.icu_patients = max(20, min(150, agent.icu_patients + change))
+                        # Randomly consume fuel
+                        agent.consume_fuel(hours=0.5)
+                        # Randomly refuel if low
+                        if agent.generator_fuel < 30 and random.random() > 0.5:
+                            agent.refuel(random.uniform(20, 40))
+                    elif hasattr(agent, 'current_production'):  # Water
+                        # Randomly change production
+                        if random.random() > 0.6:
+                            change = random.uniform(-15, 10)
+                            agent.current_production = max(20, min(100, agent.current_production + change))
+                    elif hasattr(agent, 'active_incidents'):  # Fire
+                        # Randomly add/resolve incidents
+                        if random.random() > 0.7:
+                            if random.random() > 0.5:
+                                agent.dispatch_truck(random.randint(1, 2))
+                            else:
+                                agent.resolve_incident(random.randint(1, 2))
+                
+                # Randomly vary supply slightly
+                if random.random() > 0.8:
+                    supply_change = random.uniform(-5, 3)
+                    current_supply = city_graph.nodes.get("pp_main", {}).get("capacity", 80)
+                    new_supply = max(50, min(100, current_supply + supply_change))
+                    city_graph.nodes["pp_main"]["capacity"] = new_supply
+                    city_graph.nodes["pp_main"]["max_output"] = new_supply
 
             # 2 — Raw bids (synchronous, fast)
             raw_bids = [agent.generate_bid(graph_state) for agent in agents]
@@ -178,9 +219,16 @@ async def simulation_loop() -> None:
                 },
                 disasters=[],
             )
+            
+            # Add nodes data to state for frontend
+            state_dict = state.model_dump(mode="json")
+            state_dict["nodes"] = city_graph.nodes
+            
+            # Add allocation decisions with reasons
+            state_dict["allocation_decisions"] = arbiter._allocation_log[-len(agents):] if len(arbiter._allocation_log) >= len(agents) else arbiter._allocation_log
 
             # Broadcast to all WebSocket clients
-            await manager.broadcast(state.model_dump(mode="json"))
+            await manager.broadcast(state_dict)
 
             logger.debug(
                 "Tick %d | supply=%.0f MW | demand=%.1f MW | fairness=%.2f | clients=%d",
@@ -199,9 +247,10 @@ async def lifespan(app: FastAPI):
     """Startup: build city, launch simulation loop. Shutdown: log."""
     setup_city()
     task = asyncio.create_task(simulation_loop())
+    backend = "Groq" if llm_router._groq else ("Anthropic" if llm_router._anthropic else "rule-based fallback")
     logger.info(
         "AEGIS simulation started — LLM backend: %s",
-        "OpenAI" if llm_router._openai else "rule-based fallback",
+        backend,
     )
     yield
     task.cancel()

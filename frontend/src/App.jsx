@@ -1,21 +1,30 @@
 // frontend/src/App.jsx
-import { useState, useMemo } from 'react';
-import { Wifi, WifiOff, Zap } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Wifi, WifiOff, Zap, MapPin, AlertCircle } from 'lucide-react';
 import { useWebSocket }   from './hooks/useWebSocket';
-import CityMap            from './components/CityMap';
+import AnimatedCityMap    from './components/AnimatedCityMap';
 import MetricsPanel       from './components/MetricsPanel';
 import AgentLog           from './components/AgentLog';
 import DisasterControls   from './components/DisasterControls';
+import ResourceAllocation from './components/ResourceAllocation';
+import AllocationDecisions from './components/AllocationDecisions';
+import OverallStatus      from './components/OverallStatus';
+import PriorityQueue      from './components/PriorityQueue';
+import SystemHealth       from './components/SystemHealth';
+import AgentStrategies    from './components/AgentStrategies';
+import NetworkTopology    from './components/NetworkTopology';
 
-// ─── WebSocket endpoint ───────────────────────────────────────────────────────
-const WS_URL = 'ws://localhost:8000/ws';
+// ─── Endpoints ────────────────────────────────────────────────────────────────
+const WS_URL  = 'ws://localhost:8001/ws';
+const API_URL = 'http://localhost:8001';
 
 // ─── Static node positions (fallback until backend sends graph topology) ──────
+// Types match backend AgentType enum (uppercase)
 const STATIC_NODES = {
-  pp_main:    { id: 'pp_main',    type: 'power_plant',  location: [51.50, -0.12], capacity: 100, status: 'ONLINE' },
-  hosp_main:  { id: 'hosp_main',  type: 'hospital',     location: [51.48,  0.20], capacity:  10, status: 'ONLINE' },
-  water_main: { id: 'water_main', type: 'water_plant',  location: [51.20, -0.30], capacity:  10, status: 'ONLINE' },
-  fire_main:  { id: 'fire_main',  type: 'fire_station', location: [51.70,  0.60], capacity:   5, status: 'ONLINE' },
+  pp_main:    { id: 'pp_main',    type: 'POWER_PLANT',  location: [51.50, -0.12], capacity: 100, status: 'ONLINE' },
+  hosp_main:  { id: 'hosp_main',  type: 'HOSPITAL',     location: [51.48,  0.20], capacity:  10, status: 'ONLINE' },
+  water_main: { id: 'water_main', type: 'WATER_PLANT',  location: [51.20, -0.30], capacity:  10, status: 'ONLINE' },
+  fire_main:  { id: 'fire_main',  type: 'FIRE_STATION', location: [51.70,  0.60], capacity:   5, status: 'ONLINE' },
 };
 
 // ─── Merge backend nodes with static fallback (fills missing locations) ───────
@@ -46,6 +55,9 @@ function toAllocMap(allocations) {
 export default function App() {
   const { state, isConnected, error } = useWebSocket(WS_URL);
   const [disasterHistory, setDisasterHistory] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [previousAllocations, setPreviousAllocations] = useState({});
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const nodes = useMemo(
@@ -60,10 +72,55 @@ export default function App() {
 
   const logs = state?.agent_logs ?? state?.logs ?? [];
 
-  // ── Disaster handler ───────────────────────────────────────────────────────
-  const handleDisaster = (type) => {
-    alert(`Disaster "${type}" triggered! (Backend integration pending)`);
-    setDisasterHistory((prev) => [...prev, { type, time: Date.now() }]);
+  // Track previous allocations for animation
+  useEffect(() => {
+    if (state?.allocations) {
+      setPreviousAllocations(state.allocations);
+    }
+  }, [state?.allocations]);
+
+  // Get user location on mount
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          // Send location to backend to generate agents around user
+          fetch(`${API_URL}/api/set-location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude, longitude })
+          }).catch(err => console.error('Failed to send location:', err));
+        },
+        (err) => {
+          setLocationError('Location access denied. Using default location.');
+          console.error('Geolocation error:', err);
+        }
+      );
+    } else {
+      setLocationError('Geolocation not supported. Using default location.');
+    }
+  }, []);
+
+  // ── Disaster handler — calls real backend API ─────────────────────────────
+  const handleDisaster = async (type) => {
+    try {
+      const res = await fetch(`${API_URL}/api/disaster/${type}`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const event = await res.json();
+      console.log('[Disaster] triggered:', event);
+      setDisasterHistory((prev) => [
+        ...prev,
+        { type, time: Date.now(), event: event?.event ?? event },
+      ]);
+    } catch (err) {
+      console.error('[Disaster] trigger failed:', err);
+      setDisasterHistory((prev) => [
+        ...prev,
+        { type, time: Date.now(), error: err.message },
+      ]);
+    }
   };
 
   return (
@@ -80,6 +137,16 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-5 text-sm">
+          {/* User location */}
+          {userLocation && (
+            <span className="flex items-center gap-1.5 text-gray-400">
+              <MapPin className="w-4 h-4 text-blue-400" />
+              <span className="font-mono">
+                {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+              </span>
+            </span>
+          )}
+
           {/* Tick counter */}
           <span className="font-mono text-gray-400">
             TICK: <span className="text-white font-semibold">{state?.tick ?? 0}</span>
@@ -99,6 +166,14 @@ export default function App() {
         </div>
       </header>
 
+      {/* Location notice */}
+      {locationError && (
+        <div className="bg-orange-900/30 border-b border-orange-700/40 text-orange-300 text-xs text-center py-1.5 px-4 flex items-center justify-center gap-2">
+          <AlertCircle className="w-3 h-3" />
+          {locationError}
+        </div>
+      )}
+
       {/* Disconnected notice */}
       {!isConnected && (
         <div className="bg-yellow-900/30 border-b border-yellow-700/40 text-yellow-300 text-xs text-center py-1.5 px-4">
@@ -107,21 +182,44 @@ export default function App() {
       )}
 
       {/* ── Main Grid ── */}
-      <main className="p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+      <main className="p-4 lg:p-6 grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
 
-        {/* Left column: Map + Disaster controls */}
-        <section className="lg:col-span-2 space-y-4">
-          <CityMap nodes={nodes} allocations={allocationsMap} />
+        {/* Top: Overall Status (spans full width) */}
+        <div className="xl:col-span-3">
+          <OverallStatus state={state} />
+        </div>
+
+        {/* Left column: Map */}
+        <section className="xl:col-span-2 space-y-4">
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+            <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-blue-400" />
+              Infrastructure Map
+            </h2>
+            <div className="h-[450px] rounded-lg overflow-hidden">
+              <AnimatedCityMap 
+                nodes={nodes} 
+                allocations={allocationsMap} 
+                previousAllocations={previousAllocations}
+              />
+            </div>
+          </div>
+          
+          <NetworkTopology nodes={nodes} allocations={allocationsMap} />
+        </section>
+
+        {/* Right column: All panels */}
+        <aside className="space-y-4">
+          <ResourceAllocation allocations={state?.allocations} />
+          <PriorityQueue allocations={state?.allocations} />
+          <AgentStrategies allocations={state?.allocations} />
+          <SystemHealth state={state} />
+          <AllocationDecisions decisions={state?.allocation_decisions} />
+          <AgentLog logs={logs} />
           <DisasterControls
             connected={isConnected}
             onTriggerDisaster={handleDisaster}
           />
-        </section>
-
-        {/* Right column: Metrics + Agent log */}
-        <aside className="space-y-4">
-          <MetricsPanel metrics={state?.metrics} allocations={allocationsMap} />
-          <AgentLog logs={logs} />
 
           {/* Disaster history (only when events exist) */}
           {disasterHistory.length > 0 && (

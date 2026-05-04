@@ -1,9 +1,9 @@
 // frontend/src/components/AgentLog.jsx
 import { clsx } from 'clsx';
-import { Terminal } from 'lucide-react';
+import { Terminal, Brain, AlertCircle } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const MAX_ITEMS = 20;
+const MAX_ITEMS = 50;
 
 // ─── Severity detection (broader regex from their version) ────────────────────
 function getSeverity(message = '') {
@@ -48,27 +48,55 @@ function LogRow({ entry, index }) {
   const severity = getSeverity(message);
   const s        = SEVERITY[severity];
   const isNewest = index === 0;
+  
+  // Check if this is an LLM-generated message (longer, more detailed)
+  const isLLM = message.length > 50 && /\.\s/.test(message);
 
   return (
     <div
       className={clsx(
-        'px-2 py-1.5 rounded-r text-gray-300 whitespace-pre-wrap',
-        'flex items-start gap-2',
+        'px-3 py-2 rounded-r text-gray-300',
+        'flex flex-col gap-1',
         s.row,
       )}
     >
-      {/* Live pulse dot (only newest) */}
-      <span className="mt-1 shrink-0">
-        <span
-          className={clsx('block w-1.5 h-1.5 rounded-full', s.dot, isNewest && 'animate-pulse')}
-        />
-      </span>
+      {/* Header row with timestamp and type indicator */}
+      <div className="flex items-center gap-2">
+        {/* Live pulse dot (only newest) */}
+        <span className="shrink-0">
+          <span
+            className={clsx('block w-1.5 h-1.5 rounded-full', s.dot, isNewest && 'animate-pulse')}
+          />
+        </span>
+        
+        {/* Timestamp */}
+        <span className="font-mono text-xs text-gray-500 select-none">
+          [{formatTs(entry)}]
+        </span>
+        
+        {/* LLM indicator */}
+        {isLLM && (
+          <span className="flex items-center gap-1 text-xs text-purple-400 bg-purple-900/30 px-1.5 py-0.5 rounded">
+            <Brain className="w-3 h-3" />
+            LLM Reasoning
+          </span>
+        )}
+        
+        {/* Severity badge */}
+        {severity !== 'normal' && (
+          <span className={clsx('text-xs font-medium', s.badge, 'capitalize')}>
+            {severity}
+          </span>
+        )}
+      </div>
 
-      {/* Timestamp + message */}
-      <span className="font-mono text-xs leading-snug">
-        <span className="text-gray-500 select-none">[{formatTs(entry)}]</span>{' '}
-        <span className={clsx(severity !== 'normal' && s.badge)}>{message}</span>
-      </span>
+      {/* Message content - full width for better readability */}
+      <div className={clsx(
+        'text-sm leading-relaxed pl-4',
+        severity !== 'normal' && s.badge
+      )}>
+        {message}
+      </div>
     </div>
   );
 }
@@ -82,13 +110,13 @@ export default function AgentLog({ logs = [] }) {
   const visible = [...logs].reverse().slice(0, MAX_ITEMS);
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col h-64">
+    <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col h-96">
 
       {/* Header — terminal aesthetic */}
-      <div className="px-3 py-2 border-b border-gray-700 flex items-center justify-between shrink-0">
+      <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 text-gray-400">
           <Terminal className="w-4 h-4" />
-          <span className="font-mono text-sm tracking-wide">AGENT NEGOTIATION LOG</span>
+          <span className="font-mono text-sm tracking-wide font-semibold">AGENT NEGOTIATION LOG</span>
         </div>
         {logs.length > 0 && (
           <span className="font-mono text-[10px] text-gray-600 tabular-nums">
@@ -98,11 +126,12 @@ export default function AgentLog({ logs = [] }) {
       </div>
 
       {/* Scrollable log list */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
         {visible.length === 0 ? (
-          <p className="font-mono text-xs text-gray-500 text-center py-4">
-            Waiting for agent bids…
-          </p>
+          <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+            <Brain className="w-8 h-8 mb-2 opacity-50" />
+            <p className="font-mono text-xs">Waiting for agent bids with LLM reasoning…</p>
+          </div>
         ) : (
           visible.map((entry, i) => (
             <LogRow

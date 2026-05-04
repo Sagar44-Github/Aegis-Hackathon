@@ -1,6 +1,6 @@
 // frontend/src/components/DisasterControls.jsx
 import { useState } from 'react';
-import { Waves, AlertTriangle, Droplet } from 'lucide-react';
+import { Waves, AlertTriangle, Droplet, Flame, Zap, Settings, Gauge, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // ─── Disaster definitions ─────────────────────────────────────────────────────
@@ -22,6 +22,24 @@ const DISASTERS = [
     label: 'Flood',
     icon:  Droplet,
     color: 'bg-blue-600 hover:bg-blue-500 border-blue-700',
+  },
+  {
+    id:    'wildfire',
+    label: 'Wildfire',
+    icon:  Flame,
+    color: 'bg-orange-600 hover:bg-orange-500 border-orange-700',
+  },
+  {
+    id:    'blackout',
+    label: 'Blackout',
+    icon:  Zap,
+    color: 'bg-purple-600 hover:bg-purple-500 border-purple-700',
+  },
+  {
+    id:    'custom',
+    label: 'Custom',
+    icon:  Settings,
+    color: 'bg-gray-600 hover:bg-gray-500 border-gray-700',
   },
 ];
 
@@ -74,6 +92,10 @@ function DisasterButton({ disaster, connected, onTrigger }) {
  * }} props
  */
 export default function DisasterControls({ onTriggerDisaster, connected }) {
+  const [supply, setSupply] = useState(62);
+  const [severity, setSeverity] = useState(4);
+  const [speed, setSpeed] = useState(3);
+
   return (
     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
 
@@ -81,7 +103,7 @@ export default function DisasterControls({ onTriggerDisaster, connected }) {
       <div className="flex items-center justify-between mb-3">
         <h4 className="text-sm text-gray-400 flex items-center gap-2 font-medium tracking-wide">
           <AlertTriangle className="w-4 h-4 text-red-400" />
-          DISASTER INJECTION
+          SCENARIO CONTROLS
         </h4>
         <span
           className={clsx(
@@ -95,8 +117,8 @@ export default function DisasterControls({ onTriggerDisaster, connected }) {
         </span>
       </div>
 
-      {/* Buttons */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Disaster Buttons */}
+      <div className="grid grid-cols-3 gap-2 mb-4">
         {DISASTERS.map((d) => (
           <DisasterButton
             key={d.id}
@@ -107,8 +129,71 @@ export default function DisasterControls({ onTriggerDisaster, connected }) {
         ))}
       </div>
 
+      {/* Sliders */}
+      <div className="space-y-3">
+        {/* Total Available Power */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-gray-400 flex items-center gap-1">
+              <Gauge className="w-3 h-3" />
+              Total Available Power
+            </label>
+            <span className="text-xs text-white font-mono">{supply} MW</span>
+          </div>
+          <input
+            type="range"
+            min="20"
+            max="150"
+            value={supply}
+            onChange={(e) => setSupply(parseInt(e.target.value))}
+            disabled={!connected}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 disabled:opacity-50"
+          />
+        </div>
+
+        {/* Disaster Severity */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-gray-400 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Disaster Severity
+            </label>
+            <span className="text-xs text-white font-mono">{severity}/5</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="5"
+            value={severity}
+            onChange={(e) => setSeverity(parseInt(e.target.value))}
+            disabled={!connected}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-red-500 disabled:opacity-50"
+          />
+        </div>
+
+        {/* Negotiation Speed */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs text-gray-400 flex items-center gap-1">
+              <Activity className="w-3 h-3" />
+              Negotiation Speed
+            </label>
+            <span className="text-xs text-white font-mono">{speed}x</span>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="5"
+            value={speed}
+            onChange={(e) => setSpeed(parseInt(e.target.value))}
+            disabled={!connected}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 disabled:opacity-50"
+          />
+        </div>
+      </div>
+
       {!connected && (
-        <p className="text-[10px] text-gray-600 text-center mt-2">
+        <p className="text-[10px] text-gray-600 text-center mt-3">
           Connect to server to enable
         </p>
       )}

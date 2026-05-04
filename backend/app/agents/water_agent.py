@@ -46,26 +46,29 @@ class WaterAgent(CrisisAgent):
     def calculate_demand(self, city_graph: Dict[str, Any]) -> float:
         """
         Base pump load + surge power when production deficit is high.
-            normal : 1.5 MW
-            deficit > 20 m³/h : 2.25 MW (1.5× surge to catch up)
+            normal : 20.0 MW (large pumps, treatment facilities)
+            deficit > 20 m³/h : 35.0 MW (1.75× surge to catch up)
         """
-        base    = 1.5
+        import random
+        base    = 20.0 + random.uniform(-3, 5)
         deficit = self.pump_capacity - self.current_production
-        return round(base * 1.5 if deficit > 20 else base, 3)
+        return round(base * 1.75 if deficit > 20 else base, 3)
 
     def calculate_urgency(self, city_graph: Dict[str, Any]) -> float:
-        """Urgency driven by water production deficit."""
+        """Urgency driven by water production deficit with randomness."""
+        import random
+        random_factor = random.uniform(-0.8, 0.8)
         deficit = self.pump_capacity - self.current_production
 
         if deficit > 30:
             self.state = AgentStatus.DEGRADED
-            return 8.5
+            return min(9.5, 8.5 + random_factor)
         elif deficit > 10:
             self.state = AgentStatus.DEGRADED
-            return 6.5
+            return min(8.0, 6.5 + random_factor)
         else:
             self.state = AgentStatus.ONLINE
-            return 4.0
+            return min(6.0, 4.0 + random_factor)
 
     # ── Water-specific helpers ────────────────────────────────────────────────
 
