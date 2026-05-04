@@ -91,14 +91,11 @@ export default function CityMap({ nodes = {}, allocations = {} }) {
 
   if (nodeEntries.length === 0) return <EmptyMap />;
 
-  // Fixed center on San Francisco for consistent view
-  const center = [37.78, -122.42];
-
   return (
     <div className="w-full h-full rounded-xl overflow-hidden border border-white/10 shadow-2xl">
       <MapContainer
-        center={center}
-        zoom={12}
+        center={[50, 50]}
+        zoom={7}
         scrollWheelZoom
         className="w-full h-full"
         style={{ background: '#0f172a' }}
