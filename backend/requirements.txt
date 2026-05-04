@@ -1,0 +1,19 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+websockets==12.0
+
+# ── Data validation ───────────────────────────────────────────────────────────
+pydantic==2.6.0
+pydantic-settings==2.1.0
+
+# ── Simulation / graph ────────────────────────────────────────────────────────
+networkx==3.2.1
+numpy==1.26.4
+
+# ── LLM clients ───────────────────────────────────────────────────────────────
+groq>=0.4.0          # primary — free tier, ultra-fast LPU inference
+anthropic>=0.20.0    # secondary fallback
+
+# ── Environment ───────────────────────────────────────────────────────────────
+python-dotenv==1.0.0

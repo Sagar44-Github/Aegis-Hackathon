@@ -1,0 +1,416 @@
+{
+  "summary": {
+    "total": 58,
+    "passed": 58,
+    "failed": 0,
+    "warned": 0
+  },
+  "tests": [
+    {
+      "section": "ENV",
+      "test": "GROQ_API_KEY loaded",
+      "status": "PASS",
+      "detail": "key=gsk_wP8g1cLC...",
+      "ms": 0
+    },
+    {
+      "section": "SCHEMAS",
+      "test": "Bid creation",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "SCHEMAS",
+      "test": "Urgency ge/le raises on 15.0 (correct)",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "SCHEMAS",
+      "test": "Allocation computed fields",
+      "status": "PASS",
+      "detail": "satisfaction=0.7 shortfall=1.5",
+      "ms": 0
+    },
+    {
+      "section": "SCHEMAS",
+      "test": "SimulationState + supply_deficit",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "SCHEMAS",
+      "test": "JSON serialisation",
+      "status": "PASS",
+      "detail": "385 bytes",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Hospital demand=7.0MW (100 ICU)",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Hospital CRITICAL urgency=9.5 fuel=15%",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "consume_fuel 20hrs=0%",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Hospital DEGRADED urgency=7.5 fuel=35%",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Water surge demand=2.25MW deficit>30",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Water normal demand=1.5MW deficit=5",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Fire demand=3.5MW (3 trucks, 0 incidents)",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.0
+    },
+    {
+      "section": "AGENTS",
+      "test": "Fire urgency cap <=9.8 (3 incidents) state=OFFLINE",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "AGENTS",
+      "test": "receive_allocation() + shortfall tracking",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "Urgency-priority allocation (10MW/23MW)",
+      "status": "PASS",
+      "detail": "h1=10.0 w1=0.0 f1=0.0",
+      "ms": 0.0
+    },
+    {
+      "section": "ARBITER",
+      "test": "Full supply all agents satisfied",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "Jain Fairness equal=0.9330",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "Jain Fairness scarce=0.50 (expected 0.5)",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "Jain Fairness perfect=1.0",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "allocate_with_schema() Allocation objects",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "get_round_summary() keys present",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "ARBITER",
+      "test": "100 allocation rounds stress",
+      "status": "PASS",
+      "detail": "total=2ms avg=0.02ms/round",
+      "ms": 1.5
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "add_node + add_edge",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "get_total_supply()=100MW",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "get_node_state() valid+invalid",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "apply_earthquake() 2 nodes affected",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "Supply post-quake=100.0MW",
+      "status": "PASS",
+      "detail": "fallback=100.0",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "update_loads()",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "reset_damage all ONLINE",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "Neighbours correctly linked",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "Singleton 8 nodes, snapshot OK",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "CITYGRAPH",
+      "test": "get_agent_nodes() = 6 nodes",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "DISASTER",
+      "test": "inject_earthquake() 2 affected",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.1
+    },
+    {
+      "section": "DISASTER",
+      "test": "inject_cyber_attack() 1 compromised",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.0
+    },
+    {
+      "section": "DISASTER",
+      "test": "inject_flood() 2 flooded severity=SEVERE",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0.1
+    },
+    {
+      "section": "DISASTER",
+      "test": "inject_aftershock() mag=6.34 < 7.5",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "DISASTER",
+      "test": "All 4 scenario timelines defined",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "LLM",
+      "test": "Groq client init",
+      "status": "PASS",
+      "detail": "API key loaded",
+      "ms": 0
+    },
+    {
+      "section": "LLM",
+      "test": "generate_justification() Groq live call",
+      "status": "PASS",
+      "detail": "Hospital requires 7.0 MW \u2014 80 ICU patients depend on uninterrupted power (Urgenc",
+      "ms": 1547.8
+    },
+    {
+      "section": "LLM",
+      "test": "generate_structured_bid() source=rule_based",
+      "status": "PASS",
+      "detail": "demand=2.25 urgency=8.5",
+      "ms": 1002.9
+    },
+    {
+      "section": "LLM",
+      "test": "Rule-based fallback works",
+      "status": "PASS",
+      "detail": "Fire Station requires 3.5 MW \u2014 2 active incidents require full operational capac",
+      "ms": 0
+    },
+    {
+      "section": "LLM",
+      "test": "Concurrent 3-agent asyncio.gather",
+      "status": "PASS",
+      "detail": "total=352ms avg=117ms/agent",
+      "ms": 351.8
+    },
+    {
+      "section": "INTEGRATION",
+      "test": "Full tick sense+bid+LLM+allocate+state",
+      "status": "PASS",
+      "detail": "supply=100.0MW demand=11.75MW",
+      "ms": 338.3
+    },
+    {
+      "section": "INTEGRATION",
+      "test": "SimulationState JSON payload 761 bytes",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "INTEGRATION",
+      "test": "All justifications populated",
+      "status": "PASS",
+      "detail": "We require 6.",
+      "ms": 0
+    },
+    {
+      "section": "INTEGRATION",
+      "test": "Post-quake supply=100.0MW (was 100.0MW)",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "INTEGRATION",
+      "test": "Tick 2 post-disaster allocation OK",
+      "status": "PASS",
+      "detail": "h1=6.0MW w1=2.2MW",
+      "ms": 0
+    },
+    {
+      "section": "WEBSOCKET",
+      "test": "ConnectionManager import + singleton",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "WEBSOCKET",
+      "test": "connection_count=0 get_status()={'active_connections': 0, 'connected': False}",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "WEBSOCKET",
+      "test": "broadcast() + send_personal_message() defined",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Route /health",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Route /ws",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Route /api/disaster/{dtype}",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Route /api/disaster/scenario/{name}",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Route /api/disaster/status",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "Total routes registered: 9",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    },
+    {
+      "section": "FASTAPI",
+      "test": "arbiter + city_graph singletons accessible",
+      "status": "PASS",
+      "detail": "",
+      "ms": 0
+    }
+  ]
+}
