@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+*.egg
+venv/
+env/
+.venv/
+.env/
+pip-log.txt
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+
+# Cache
+.cache/
+.parcel-cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
