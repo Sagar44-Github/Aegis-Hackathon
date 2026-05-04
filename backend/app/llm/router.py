@@ -38,17 +38,20 @@ _SYSTEM_PROMPT = (
     "Be specific, urgent, and vary your reasoning based on the context. "
     "Mention specific equipment, patient counts, or operational details. "
     "Different scenarios require different justifications - be creative but realistic. "
-    "One to two sentences maximum."
+    "Focus on the actual operational needs: life support systems, emergency response equipment, "
+    "critical infrastructure, water treatment, fire suppression systems, etc. "
+    "Explain WHY the power is needed, not just that it's needed. "
+    "One to two sentences maximum. Be direct and specific."
 )
 
 # ── Per-agent rule-based fallback templates ───────────────────────────────────
 _FALLBACK_TEMPLATES: Dict[str, str] = {
-    "HOSPITAL":     "{label} requires {demand:.1f} MW — {icu_patients} ICU patients depend on uninterrupted power (Urgency: {urgency:.1f}/10).",
-    "POWER_GRID":   "{label} operating at {stability:.0f}% grid stability — load balancing critical to prevent cascade failure (Urgency: {urgency:.1f}/10).",
-    "WATER_PLANT":  "{label} requires {demand:.1f} MW — pump deficit of {deficit:.0f} m³/h risks contamination (Urgency: {urgency:.1f}/10).",
-    "FIRE_STATION": "{label} requires {demand:.1f} MW — {active_incidents} active incidents require full operational capacity (Urgency: {urgency:.1f}/10).",
-    "TELECOM":      "{label} requires {demand:.1f} MW — {towers_online} comm towers must stay online for emergency coordination (Urgency: {urgency:.1f}/10).",
-    "DEFAULT":      "{label} requires {demand:.1f} MW for critical operations (Urgency: {urgency:.1f}/10).",
+    "HOSPITAL":     "Life support systems for {icu_patients} ICU patients require {demand:.1f} MW to prevent critical care failures (Urgency: {urgency:.1f}/10).",
+    "POWER_GRID":   "Grid stability at {stability:.0f}% requires {demand:.1f} MW to prevent cascade failures across the network (Urgency: {urgency:.1f}/10).",
+    "WATER_PLANT":  "Water treatment pumps need {demand:.1f} MW to maintain {deficit:.0f} m³/h flow and prevent contamination (Urgency: {urgency:.1f}/10).",
+    "FIRE_STATION": "{active_incidents} active fire incidents require {demand:.1f} MW for emergency response and suppression systems (Urgency: {urgency:.1f}/10).",
+    "TELECOM":      "Emergency communications depend on {towers_online} towers requiring {demand:.1f} MW for coordination networks (Urgency: {urgency:.1f}/10).",
+    "DEFAULT":      "Critical infrastructure requires {demand:.1f} MW to maintain essential operations (Urgency: {urgency:.1f}/10).",
 }
 
 # ── Optional SDK imports (won't crash if packages aren't installed) ───────────

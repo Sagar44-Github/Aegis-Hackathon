@@ -119,7 +119,7 @@ class SimulationState(BaseModel):
     total_supply_mw: float
     total_demand_mw: float
     allocations:     List[Allocation]     = Field(default_factory=list)
-    agent_logs:      List[str]            = Field(default_factory=list)
+    agent_logs:      List[Dict[str, Any]] = Field(default_factory=list)  # Changed to support structured logs
     metrics:         Dict[str, float]     = Field(default_factory=dict)
     disasters:       List[str]            = Field(default_factory=list)
     disaster_events: List[DisasterEvent]  = Field(default_factory=list)

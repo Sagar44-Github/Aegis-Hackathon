@@ -2,17 +2,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Wifi, WifiOff, Zap, MapPin, AlertCircle } from 'lucide-react';
 import { useWebSocket }   from './hooks/useWebSocket';
-import AnimatedCityMap    from './components/AnimatedCityMap';
+import CityMap            from './components/CityMap';
 import MetricsPanel       from './components/MetricsPanel';
 import AgentLog           from './components/AgentLog';
 import DisasterControls   from './components/DisasterControls';
 import ResourceAllocation from './components/ResourceAllocation';
 import AllocationDecisions from './components/AllocationDecisions';
-import OverallStatus      from './components/OverallStatus';
-import PriorityQueue      from './components/PriorityQueue';
-import SystemHealth       from './components/SystemHealth';
-import AgentStrategies    from './components/AgentStrategies';
-import NetworkTopology    from './components/NetworkTopology';
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
 const WS_URL  = 'ws://localhost:8001/ws';
@@ -57,7 +52,6 @@ export default function App() {
   const [disasterHistory, setDisasterHistory] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
-  const [previousAllocations, setPreviousAllocations] = useState({});
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const nodes = useMemo(
@@ -71,13 +65,6 @@ export default function App() {
   );
 
   const logs = state?.agent_logs ?? state?.logs ?? [];
-
-  // Track previous allocations for animation
-  useEffect(() => {
-    if (state?.allocations) {
-      setPreviousAllocations(state.allocations);
-    }
-  }, [state?.allocations]);
 
   // Get user location on mount
   useEffect(() => {
@@ -182,44 +169,33 @@ export default function App() {
       )}
 
       {/* ── Main Grid ── */}
-      <main className="p-4 lg:p-6 grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+      <main className="p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
 
-        {/* Top: Overall Status (spans full width) */}
-        <div className="xl:col-span-3">
-          <OverallStatus state={state} />
-        </div>
-
-        {/* Left column: Map */}
-        <section className="xl:col-span-2 space-y-4">
+        {/* Left column: Map + Allocation Decisions */}
+        <section className="space-y-4">
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
             <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-400" />
               Infrastructure Map
             </h2>
-            <div className="h-[450px] rounded-lg overflow-hidden">
-              <AnimatedCityMap 
-                nodes={nodes} 
-                allocations={allocationsMap} 
-                previousAllocations={previousAllocations}
-              />
+            <div className="h-[400px] rounded-lg overflow-hidden">
+              <CityMap nodes={nodes} allocations={allocationsMap} />
             </div>
           </div>
           
-          <NetworkTopology nodes={nodes} allocations={allocationsMap} />
-        </section>
-
-        {/* Right column: All panels */}
-        <aside className="space-y-4">
-          <ResourceAllocation allocations={state?.allocations} />
-          <PriorityQueue allocations={state?.allocations} />
-          <AgentStrategies allocations={state?.allocations} />
-          <SystemHealth state={state} />
           <AllocationDecisions decisions={state?.allocation_decisions} />
-          <AgentLog logs={logs} />
+          
           <DisasterControls
             connected={isConnected}
             onTriggerDisaster={handleDisaster}
           />
+        </section>
+
+        {/* Right column: Metrics, Allocations, Agent log */}
+        <aside className="space-y-4">
+          <MetricsPanel metrics={state?.metrics} allocations={allocationsMap} />
+          <ResourceAllocation allocations={state?.allocations} />
+          <AgentLog logs={logs} />
 
           {/* Disaster history (only when events exist) */}
           {disasterHistory.length > 0 && (

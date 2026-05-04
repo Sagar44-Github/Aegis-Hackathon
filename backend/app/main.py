@@ -72,12 +72,13 @@ def setup_city() -> None:
     
     # Supply source - REDUCED from 100 to 80 MW to create scarcity
     supply_capacity = 80.0 + random.uniform(-10, 5)  # Variable supply 70-85 MW
-    city_graph.add_infrastructure_node("pp_main",    "POWER_PLANT",  (50, 50), supply_capacity)
+    # Using realistic San Francisco Bay Area coordinates
+    city_graph.add_infrastructure_node("pp_main",    "POWER_PLANT",  (37.78, -122.42), supply_capacity)
     
-    # Consumer nodes
-    city_graph.add_infrastructure_node("hosp_main",  "HOSPITAL",     (10, 10), 10.0)
-    city_graph.add_infrastructure_node("water_main", "WATER_PLANT",  (90, 10), 10.0)
-    city_graph.add_infrastructure_node("fire_main",  "FIRE_STATION", (10, 90),  5.0)
+    # Consumer nodes - all within San Francisco area
+    city_graph.add_infrastructure_node("hosp_main",  "HOSPITAL",     (37.77, -122.41), 10.0)
+    city_graph.add_infrastructure_node("water_main", "WATER_PLANT",  (37.76, -122.43), 10.0)
+    city_graph.add_infrastructure_node("fire_main",  "FIRE_STATION", (37.79, -122.40),  5.0)
 
     # Power line connections
     city_graph.add_edge("pp_main", "hosp_main",  capacity=10.0)
@@ -86,9 +87,10 @@ def setup_city() -> None:
 
     # Agents (one per consumer node, IDs match node IDs)
     # Initialize with varied states for dynamic behavior
-    agents.append(HospitalAgent("hosp_main",  (10, 10), icu_patients=random.randint(60, 120), generator_fuel=random.uniform(30, 100)))
-    agents.append(WaterAgent(   "water_main", (90, 10), pump_capacity=100.0, current_production=random.uniform(40, 90)))
-    agents.append(FireStationAgent("fire_main", (10, 90), active_trucks=random.randint(2, 5), active_incidents=random.randint(0, 2)))
+    # Agent coordinates must match node coordinates
+    agents.append(HospitalAgent("hosp_main",  (37.77, -122.41), icu_patients=random.randint(60, 120), generator_fuel=random.uniform(30, 100)))
+    agents.append(WaterAgent(   "water_main", (37.76, -122.43), pump_capacity=100.0, current_production=random.uniform(40, 90)))
+    agents.append(FireStationAgent("fire_main", (37.79, -122.40), active_trucks=random.randint(2, 5), active_incidents=random.randint(0, 2)))
 
     logger.info(
         "City setup complete — supply: %.0f MW | agents: %d",
@@ -97,6 +99,9 @@ def setup_city() -> None:
 
 
 # ── Simulation Loop ───────────────────────────────────────────────────────────
+
+# Global accumulator for agent logs across ticks
+_accumulated_agent_logs: List[Dict[str, Any]] = []
 
 async def simulation_loop() -> None:
     """
@@ -112,7 +117,7 @@ async def simulation_loop() -> None:
         7. Metrics — fairness index + utilisation calculated
         8. Broadcast— SimulationState pushed to all WebSocket clients
     """
-    global tick_counter
+    global tick_counter, _accumulated_agent_logs
     import random
 
     while True:
@@ -189,7 +194,8 @@ async def simulation_loop() -> None:
             alloc_values  = list(allocations_dict.values())
             total_demand  = sum(b.demand_mw for b in bids)
             fairness      = arbiter.jains_fairness(alloc_values)
-            utilisation   = sum(alloc_values) / total_supply if total_supply > 0 else 0.0
+            # Utilization: fraction (0-1) of supply that is actually allocated
+            utilisation   = (sum(alloc_values) / total_supply) if total_supply > 0 else 0.0
 
             # 7 — Build SimulationState schema
             allocations_schema = [
@@ -201,8 +207,26 @@ async def simulation_loop() -> None:
                     urgency_score=bid_map[agent_id].urgency_score,
                 )
                 for agent_id, alloc_mw in allocations_dict.items()
-                if agent_id in bid_map
             ]
+
+            # Build current tick's agent logs
+            current_tick_logs = [
+                {
+                    "agent_id": b.agent_id,
+                    "agent_type": b.agent_type.value,
+                    "demand_mw": b.demand_mw,
+                    "urgency_score": b.urgency_score,
+                    "justification": b.justification,
+                    "timestamp": time.time(),
+                    "tick": tick_counter,
+                }
+                for b in bids
+            ]
+            
+            # Accumulate logs (keep last 500)
+            _accumulated_agent_logs.extend(current_tick_logs)
+            if len(_accumulated_agent_logs) > 500:
+                _accumulated_agent_logs = _accumulated_agent_logs[-500:]
 
             state = SimulationState(
                 tick=tick_counter,
@@ -210,12 +234,13 @@ async def simulation_loop() -> None:
                 total_supply_mw=total_supply,
                 total_demand_mw=total_demand,
                 allocations=allocations_schema,
-                agent_logs=[b.justification for b in bids],
+                agent_logs=_accumulated_agent_logs,  # Send accumulated history
                 metrics={
                     "fairness_index": fairness,
-                    "utilisation":    round(utilisation, 3),
-                    "supply_mw":      total_supply,
-                    "demand_mw":      round(total_demand, 2),
+                    "utilization":    round(utilisation, 3),
+                    "total_supply_mw": total_supply,
+                    "total_demand_mw": round(total_demand, 2),
+                    "active_agents":  len(agents),
                 },
                 disasters=[],
             )
