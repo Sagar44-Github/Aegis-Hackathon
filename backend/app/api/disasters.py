@@ -79,6 +79,11 @@ class LocationRequest(BaseModel):
     longitude: float = Field(..., ge=-180, le=180)
 
 
+class ApiControlRequest(BaseModel):
+    """API call control request."""
+    enabled: bool = Field(..., description="Whether to enable or disable API calls")
+
+
 # ── Dependency: city_graph singleton ─────────────────────────────────────────
 
 def get_city_graph() -> Dict[str, Any]:
@@ -253,6 +258,33 @@ async def disaster_status() -> Dict[str, Any]:
             "flood":        FloodParams.model_json_schema(),
         },
     }
+
+
+@router.post("/set-api-calls")
+async def set_api_calls(request: ApiControlRequest) -> Dict[str, Any]:
+    """
+    Enable or disable API calls to prevent hitting rate limits.
+    When disabled, the system will use rule-based justifications instead of LLM calls.
+    """
+    try:
+        from app.llm.router import llm_router
+        
+        # Store the API control state in the LLM router
+        llm_router.set_api_calls_enabled(request.enabled)
+        
+        logger.info(f"API calls {'ENABLED' if request.enabled else 'DISABLED'} via frontend control")
+        
+        return {
+            "status": "success",
+            "api_calls_enabled": request.enabled,
+            "message": f"API calls {'enabled' if request.enabled else 'disabled'} - {'using AI justifications' if request.enabled else 'using rule-based justifications'}"
+        }
+    except Exception as exc:
+        logger.exception("Failed to set API calls: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to set API calls: {exc}"
+        )
 
 
 @router.post("/set-location")

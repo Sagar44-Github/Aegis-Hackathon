@@ -34,7 +34,7 @@ class CentralArbiter:
 
     def __init__(
         self,
-        minimum_guarantee_mw: float = 0.0,   # MW floor guaranteed to every agent
+        minimum_guarantee_mw: float = 2.0,   # MW floor guaranteed to every agent (increased for better fairness)
     ) -> None:
         self.minimum_guarantee_mw = minimum_guarantee_mw
 
@@ -69,27 +69,39 @@ class CentralArbiter:
         # 1 — Sort by urgency descending (highest urgency served first)
         sorted_bids = sorted(bids, key=lambda b: b.urgency_score, reverse=True)
 
-        # 2 — Reserve minimum guarantee for every agent first
+        # 2 — Improved allocation strategy for better fairness
         n_agents   = len(sorted_bids)
-        guaranteed = min(
-            self.minimum_guarantee_mw,
-            total_supply / n_agents if n_agents else 0.0,
-        )
-        reserved       = guaranteed * n_agents
-        remaining      = max(0.0, total_supply - reserved)
+        
+        # Calculate fair share and minimum guarantee
+        fair_share = total_supply / n_agents if n_agents > 0 else 0.0
+        guaranteed = min(self.minimum_guarantee_mw, fair_share)
+        
+        # Reserve guaranteed amount for all agents
+        reserved_total = guaranteed * n_agents
+        remaining_supply = max(0.0, total_supply - reserved_total)
 
         allocations: Dict[str, float] = {}
 
-        # 3 — Top-down urgency allocation on remaining supply
-        for bid in sorted_bids:
-            if remaining <= 0:
-                allocations[bid.agent_id] = round(guaranteed, 3)
-            else:
-                extra = min(bid.demand_mw - guaranteed, remaining)
-                extra = max(0.0, extra)
-                alloc = guaranteed + extra
+        # 3 — Fair allocation with urgency weighting
+        if remaining_supply > 0:
+            # Calculate urgency weights (higher urgency = higher weight)
+            total_urgency = sum(b.urgency_score for b in sorted_bids)
+            urgency_weights = {b.agent_id: (b.urgency_score / total_urgency if total_urgency > 0 else 1.0/n_agents) for b in sorted_bids}
+            
+            for bid in sorted_bids:
+                # Base guarantee + urgency-weighted share of remaining supply
+                urgency_share = remaining_supply * urgency_weights[bid.agent_id]
+                max_possible = bid.demand_mw
+                
+                alloc = guaranteed + urgency_share
+                alloc = min(alloc, max_possible)  # Don't exceed demand
+                alloc = max(alloc, guaranteed)   # Ensure minimum guarantee
+                
                 allocations[bid.agent_id] = round(alloc, 3)
-                remaining -= extra
+        else:
+            # No remaining supply - just give guarantees
+            for bid in sorted_bids:
+                allocations[bid.agent_id] = round(guaranteed, 3)
 
         # 4 — Log this round
         round_record = self._build_round_record(

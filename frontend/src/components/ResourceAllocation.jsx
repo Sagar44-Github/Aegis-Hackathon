@@ -18,11 +18,16 @@ export default function ResourceAllocation({ allocations = {} }) {
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-        <Battery className="w-4 h-4" />
-        Resource Allocation
-      </h3>
+    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 shadow-2xl p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-yellow-500/20 rounded-xl">
+          <Battery className="w-5 h-5 text-yellow-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white">Resource Allocation</h3>
+          <p className="text-sm text-gray-400">Power distribution</p>
+        </div>
+      </div>
       
       <div className="space-y-3">
         {allocArray.map((alloc, idx) => {

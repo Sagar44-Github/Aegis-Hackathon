@@ -1,6 +1,6 @@
 // frontend/src/components/DisasterControls.jsx
-import { useState } from 'react';
-import { Waves, AlertTriangle, Droplet, Flame, Zap, Settings, Gauge, Activity } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Waves, AlertTriangle, Droplet, Flame, Zap, Settings, Gauge, Activity, Brain, Pause, Play } from 'lucide-react';
 import { clsx } from 'clsx';
 
 // ─── Disaster definitions ─────────────────────────────────────────────────────
@@ -24,22 +24,10 @@ const DISASTERS = [
     color: 'bg-blue-600 hover:bg-blue-500 border-blue-700',
   },
   {
-    id:    'wildfire',
-    label: 'Wildfire',
-    icon:  Flame,
+    id:    'aftershock',
+    label: 'Aftershock',
+    icon:  Activity,
     color: 'bg-orange-600 hover:bg-orange-500 border-orange-700',
-  },
-  {
-    id:    'blackout',
-    label: 'Blackout',
-    icon:  Zap,
-    color: 'bg-purple-600 hover:bg-purple-500 border-purple-700',
-  },
-  {
-    id:    'custom',
-    label: 'Custom',
-    icon:  Settings,
-    color: 'bg-gray-600 hover:bg-gray-500 border-gray-700',
   },
 ];
 
@@ -89,12 +77,24 @@ function DisasterButton({ disaster, connected, onTrigger }) {
  * @param {{
  *   onTriggerDisaster: (id: string) => void,
  *   connected: boolean,
+ *   onToggleApiCalls: (enabled: boolean) => void,
+ *   apiCallsEnabled: boolean,
  * }} props
  */
-export default function DisasterControls({ onTriggerDisaster, connected }) {
-  const [supply, setSupply] = useState(62);
+export default function DisasterControls({ onTriggerDisaster, connected, onToggleApiCalls, apiCallsEnabled, state }) {
   const [severity, setSeverity] = useState(4);
   const [speed, setSpeed] = useState(3);
+  
+  // Use actual supply from backend state, not hardcoded
+  const currentSupply = state?.metrics?.total_supply_mw || 62;
+  const [supply, setSupply] = useState(currentSupply);
+  
+  // Update local supply when backend state changes
+  useEffect(() => {
+    if (state?.metrics?.total_supply_mw) {
+      setSupply(state.metrics.total_supply_mw);
+    }
+  }, [state?.metrics?.total_supply_mw]);
 
   return (
     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
@@ -105,16 +105,63 @@ export default function DisasterControls({ onTriggerDisaster, connected }) {
           <AlertTriangle className="w-4 h-4 text-red-400" />
           SCENARIO CONTROLS
         </h4>
-        <span
+        <div className="flex items-center gap-2">
+          {/* API Control Status */}
+          <span
+            className={clsx(
+              'text-[10px] px-2 py-0.5 rounded-full font-semibold border',
+              apiCallsEnabled
+                ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                : 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+            )}
+          >
+            {apiCallsEnabled ? 'AI ON' : 'AI OFF'}
+          </span>
+          <span
+            className={clsx(
+              'text-[10px] px-2 py-0.5 rounded-full font-semibold border',
+              connected
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                : 'bg-gray-700 text-gray-500 border-gray-600',
+            )}
+          >
+            {connected ? 'ARMED' : 'OFFLINE'}
+          </span>
+        </div>
+      </div>
+
+      {/* API Control Toggle */}
+      <div className="mb-4">
+        <button
+          onClick={() => onToggleApiCalls(!apiCallsEnabled)}
+          disabled={!connected}
           className={clsx(
-            'text-[10px] px-2 py-0.5 rounded-full font-semibold border',
-            connected
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-              : 'bg-gray-700 text-gray-500 border-gray-600',
+            'w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-sm font-semibold transition-all duration-200',
+            !connected
+              ? 'opacity-50 cursor-not-allowed bg-gray-700 border-gray-600 text-gray-400'
+              : apiCallsEnabled
+                ? 'bg-orange-600 hover:bg-orange-500 border-orange-700 text-white'
+                : 'bg-green-600 hover:bg-green-500 border-green-700 text-white',
           )}
         >
-          {connected ? 'ARMED' : 'OFFLINE'}
-        </span>
+          {apiCallsEnabled ? (
+            <>
+              <Pause className="w-4 h-4" />
+              STOP AI CALLS
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" />
+              START AI CALLS
+            </>
+          )}
+        </button>
+        <p className="text-[10px] text-gray-500 text-center mt-1">
+          {apiCallsEnabled 
+            ? 'AI justifications are being generated (using API quota)'
+            : 'Using rule-based justifications (saving API quota)'
+          }
+        </p>
       </div>
 
       {/* Disaster Buttons */}

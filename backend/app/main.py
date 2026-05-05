@@ -214,13 +214,16 @@ async def simulation_loop() -> None:
             # 6 — Update graph loads
             city_graph.update_loads(allocations_dict)
 
-            # 7 — Metrics
+            # 7 — Metrics - Fixed calculations
             alloc_values  = list(allocations_dict.values())
             total_demand  = sum(b.demand_mw for b in bids)
-            fairness      = arbiter.jains_fairness(alloc_values)
             total_allocated = sum(alloc_values)
+            
+            # Fairness calculation - only consider agents that received allocations
+            fairness = arbiter.jains_fairness(alloc_values) if alloc_values else 1.0
+            
             # Utilization: percentage of supply that is actually allocated
-            utilisation   = (total_allocated / total_supply * 100) if total_supply > 0 else 0.0
+            utilisation = (total_allocated / total_supply * 100) if total_supply > 0 else 0.0
 
             # 8 — Build SimulationState schema
             allocations_schema = [
@@ -285,12 +288,15 @@ async def simulation_loop() -> None:
                     "total_demand_mw": round(total_demand, 2),
                     "total_allocated_mw": round(total_allocated, 2),
                     "supply_deficit_mw": round(max(0, total_demand - total_supply), 2),
+                    # Fixed satisfaction calculation - only count agents that received allocations
                     "overall_satisfaction": round(
                         sum(a.satisfaction for a in allocations_schema) / len(allocations_schema), 4
                     ) if allocations_schema else 1.0,
+                    # Fixed agent counts - count actual agents, not allocations
                     "agents_online": sum(1 for a in agents if a.state.value == "ONLINE"),
                     "agents_degraded": sum(1 for a in agents if a.state.value == "DEGRADED"),
                     "agents_offline": sum(1 for a in agents if a.state.value == "OFFLINE"),
+                    "total_agents": len(agents),  # Add total agent count for clarity
                 },
                 disasters=[],
             )

@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
 import { useState, useMemo, useEffect } from 'react';
-import { Wifi, WifiOff, Zap, MapPin, AlertCircle } from 'lucide-react';
+import { Wifi, WifiOff, Zap, MapPin, AlertCircle, Activity } from 'lucide-react';
 import { useWebSocket }   from './hooks/useWebSocket';
 import AnimatedCityMap    from './components/AnimatedCityMap';
 import MetricsPanel       from './components/MetricsPanel';
@@ -13,6 +13,7 @@ import PriorityQueue      from './components/PriorityQueue';
 import SystemHealth       from './components/SystemHealth';
 import AgentStrategies    from './components/AgentStrategies';
 import NetworkTopology    from './components/NetworkTopology';
+import LLMJustification   from './components/LLMJustification';
 
 // ─── Endpoints ────────────────────────────────────────────────────────────────
 const WS_URL  = 'ws://127.0.0.1:8000/ws';
@@ -58,6 +59,7 @@ export default function App() {
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [previousAllocations, setPreviousAllocations] = useState({});
+  const [apiCallsEnabled, setApiCallsEnabled] = useState(true);
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const nodes = useMemo(
@@ -120,6 +122,22 @@ export default function App() {
         ...prev,
         { type, time: Date.now(), error: err.message },
       ]);
+    }
+  };
+
+  // ── API control handler ───────────────────────────────────────────────────────
+  const handleToggleApiCalls = async (enabled) => {
+    setApiCallsEnabled(enabled);
+    try {
+      const res = await fetch(`${API_URL}/api/set-api-calls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      console.log('[API Control] Set API calls:', enabled ? 'ENABLED' : 'DISABLED');
+    } catch (err) {
+      console.error('[API Control] Failed to set API calls:', err);
     }
   };
 
@@ -189,8 +207,8 @@ export default function App() {
           <OverallStatus state={state} />
         </div>
 
-        {/* Left column: Map + Allocation Decisions + Agent Log */}
-        <section className="xl:col-span-2 space-y-4">
+        {/* Left column: Map + Scenario Controls */}
+        <section className="space-y-4">
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
             <h2 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-400" />
@@ -205,24 +223,36 @@ export default function App() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <NetworkTopology nodes={nodes} allocations={allocationsMap} />
-            <SystemHealth state={state} />
-          </div>
+          {/* Scenario Controls moved to left */}
+          <DisasterControls
+            connected={isConnected}
+            onTriggerDisaster={handleDisaster}
+            onToggleApiCalls={handleToggleApiCalls}
+            apiCallsEnabled={apiCallsEnabled}
+            state={state}
+          />
 
+          {/* Network Topology */}
+          <NetworkTopology nodes={nodes} allocations={allocationsMap} />
+          
+          {/* AI Strategies */}
+          <AgentStrategies allocations={state?.allocations} />
+        </section>
+
+        {/* Middle column: System Health + Agent Logs */}
+        <section className="space-y-4">
+          <SystemHealth state={state} />
           <AgentLog logs={logs} />
           <AllocationDecisions decisions={state?.allocation_decisions} />
         </section>
 
-        {/* Right column: Panels + Controls */}
+        {/* Right column: Resource Panels */}
         <aside className="space-y-4">
           <ResourceAllocation allocations={state?.allocations} />
           <PriorityQueue allocations={state?.allocations} />
-          <AgentStrategies allocations={state?.allocations} />
-          <DisasterControls
-            connected={isConnected}
-            onTriggerDisaster={handleDisaster}
-          />
+          
+          {/* AI Justification */}
+          <LLMJustification logs={logs} />
 
           {/* Disaster history (only when events exist) */}
           {disasterHistory.length > 0 && (
@@ -239,7 +269,6 @@ export default function App() {
             </div>
           )}
         </aside>
-
       </main>
     </div>
   );

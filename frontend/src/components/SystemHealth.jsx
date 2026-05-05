@@ -20,7 +20,7 @@ export default function SystemHealth({ state = {} }) {
   const agentsOnline = metrics.agents_online ?? 0;
   const agentsDegraded = metrics.agents_degraded ?? 0;
   const agentsOffline = metrics.agents_offline ?? 0;
-  const totalAgents = agentsOnline + agentsDegraded + agentsOffline;
+  const totalAgents = metrics.total_agents || agentsOnline + agentsDegraded + agentsOffline || 3;
   
   // Dynamic shortfall count from actual allocations
   const failureEvents = allocations.filter(a => (a.shortfall_mw || 0) > 0).length;
@@ -74,13 +74,18 @@ export default function SystemHealth({ state = {} }) {
   ];
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
-      <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-        <Activity className="w-4 h-4" />
-        System Health
-      </h3>
+    <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 shadow-2xl p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-green-500/20 rounded-xl">
+          <Activity className="w-5 h-5 text-green-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-white">System Health</h3>
+          <p className="text-sm text-gray-400">Performance metrics</p>
+        </div>
+      </div>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         {metricsData.map((metric, idx) => {
           const Icon = metric.icon;
           return (

@@ -98,6 +98,9 @@ class LLMRouter:
             if _ANTHROPIC_AVAILABLE and anthropic_key
             else None
         )
+        
+        # API call control state
+        self._api_calls_enabled: bool = True
 
         # Startup log
         backends = []
@@ -112,6 +115,11 @@ class LLMRouter:
             )
 
     # ── Public API ────────────────────────────────────────────────────────────
+
+    def set_api_calls_enabled(self, enabled: bool) -> None:
+        """Enable or disable API calls to prevent hitting rate limits."""
+        self._api_calls_enabled = enabled
+        logger.info(f"LLMRouter: API calls {'ENABLED' if enabled else 'DISABLED'}")
 
     async def generate_justification(
         self,
@@ -130,6 +138,11 @@ class LLMRouter:
         Returns:
             Single justification sentence — Groq, Claude, or rule-based fallback.
         """
+        # Check if API calls are disabled
+        if not self._api_calls_enabled:
+            logger.debug("API calls disabled - using rule-based justification")
+            return self._rule_based_justification(agent_type, state)
+
         prompt = self._build_prompt(agent_type, state)
 
         # 1 — Groq llama-3.1-8b-instant (primary, ~200ms)

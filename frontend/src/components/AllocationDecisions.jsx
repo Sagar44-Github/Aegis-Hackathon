@@ -1,8 +1,12 @@
 // frontend/src/components/AllocationDecisions.jsx
-import { CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useState } from 'react';
 
 export default function AllocationDecisions({ decisions = [] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const MAX_VISIBLE = 5; // Show max 5 decisions by default
   if (!decisions || decisions.length === 0) {
     return (
       <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
@@ -15,8 +19,15 @@ export default function AllocationDecisions({ decisions = [] }) {
     );
   }
 
-  // Get the most recent decisions (last N entries)
+  // Get the most recent decisions
   const recentDecisions = decisions.slice(-10).reverse();
+  
+  // Determine which decisions to show
+  const visibleDecisions = isExpanded 
+    ? recentDecisions 
+    : recentDecisions.slice(0, MAX_VISIBLE);
+  
+  const hasMore = recentDecisions.length > MAX_VISIBLE;
 
   return (
     <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">
@@ -26,7 +37,7 @@ export default function AllocationDecisions({ decisions = [] }) {
       </h3>
       
       <div className="space-y-2">
-        {recentDecisions.map((decision, idx) => {
+        {visibleDecisions.map((decision, idx) => {
           const decisionType = decision.decision || 'UNKNOWN';
           const isAccepted = decisionType === 'ACCEPTED';
           const isPartial = decisionType === 'PARTIALLY_ACCEPTED';
@@ -132,6 +143,26 @@ export default function AllocationDecisions({ decisions = [] }) {
           );
         })}
       </div>
+      
+      {/* View More/Less Button */}
+      {hasMore && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full mt-3 flex items-center justify-center gap-2 py-2 px-3 bg-gray-700 hover:bg-gray-600 rounded-lg border border-gray-600 text-xs font-medium text-gray-300 transition-colors duration-200"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="w-3 h-3" />
+              Show Less ({recentDecisions.length - MAX_VISIBLE} hidden)
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3 h-3" />
+              View More ({recentDecisions.length - MAX_VISIBLE} more)
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }
